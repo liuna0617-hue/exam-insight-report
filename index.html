@@ -36,10 +36,19 @@
 
   body {
     font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    background: var(--gray-50);
+    background: #d0cec7;
     color: var(--text);
     font-size: 14px;
     line-height: 1.6;
+  }
+
+  .page-wrap {
+    max-width: 1200px;
+    margin: 32px auto;
+    background: var(--gray-50);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.12);
   }
 
   /* ── 顶部封面 ── */
@@ -247,6 +256,7 @@
 </style>
 </head>
 <body>
+<div class="page-wrap">
 
 <!-- ═══ 封面 ═══ -->
 <div class="cover">
@@ -745,6 +755,8 @@
   <div>AI 考试洞察报告 · 酷学院智能分析平台 · 2026-04-22 自动生成</div>
   <div>数据基于 MCP 接口统计结果 · Skill 深度分析 · 仅供培训决策参考</div>
 </div>
+</div>
+</div><!-- /page-wrap -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
