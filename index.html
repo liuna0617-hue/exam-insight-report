@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 考试洞察报告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+  :root {
+    --blue: #1a6fc4;
+    --blue-light: #e8f1fb;
+    --blue-mid: #4a9de0;
+    --orange: #e07b2a;
+    --orange-light: #fef3e8;
+    --red: #d94040;
+    --red-light: #fdeaea;
+    --green: #2e9e6b;
+    --green-light: #e6f6ef;
+    --amber: #c48a10;
+    --amber-light: #fef8e6;
+    --gray-50: #f8f8f7;
+    --gray-100: #f0efeb;
+    --gray-200: #e0dfd8;
+    --gray-400: #9e9c94;
+    --gray-600: #5c5b55;
+    --gray-800: #2c2c2a;
+    --text: #1a1a18;
+    --text-muted: #6b6a64;
+    --border: #e0dfd8;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--gray-50);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── 顶部封面 ── */
+  .cover {
+    background: linear-gradient(135deg, #0f3f78 0%, #1a6fc4 60%, #2e9e6b 100%);
+    color: #fff;
+    padding: 48px 56px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .cover-label { font-size: 12px; font-weight: 500; letter-spacing: 2px; opacity: 0.7; text-transform: uppercase; margin-bottom: 12px; }
+  .cover-title { font-size: 26px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+  .cover-sub { font-size: 14px; opacity: 0.75; margin-bottom: 32px; }
+  .cover-meta { display: flex; gap: 32px; flex-wrap: wrap; }
+  .cover-meta-item { }
+  .cover-meta-item .label { font-size: 11px; opacity: 0.6; margin-bottom: 2px; }
+  .cover-meta-item .val { font-size: 16px; font-weight: 700; }
+
+  /* ── 总览卡片行 ── */
+  .section { padding: 32px 56px; }
+  .section-title {
+    font-size: 16px; font-weight: 700; color: var(--text);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 18px;
+    background: var(--blue);
+    border-radius: 2px;
+  }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 0; }
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px 14px;
+    text-align: center;
+  }
+  .stat-card .num { font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-card .lbl { font-size: 12px; color: var(--text-muted); }
+  .stat-card.danger .num { color: var(--red); }
+  .stat-card.warn   .num { color: var(--orange); }
+  .stat-card.ok     .num { color: var(--green); }
+  .stat-card.blue   .num { color: var(--blue); }
+
+  /* 风险等级徽章 */
+  .risk-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 700;
+  }
+  .risk-p1 { background: var(--red-light); color: var(--red); border: 1px solid #f5c0c0; }
+  .risk-p2 { background: var(--amber-light); color: var(--amber); border: 1px solid #f0d78a; }
+  .risk-ok { background: var(--green-light); color: var(--green); border: 1px solid #a0dfc0; }
+
+  /* ── 成绩分布 ── */
+  .dist-table { width: 100%; border-collapse: collapse; }
+  .dist-table th { background: var(--gray-100); padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: left; border-bottom: 1px solid var(--border); }
+  .dist-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .dist-table tr:last-child td { border-bottom: none; }
+  .bar-wrap { width: 180px; background: var(--gray-100); border-radius: 3px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── 知识点分析 ── */
+  .kp-list { display: flex; flex-direction: column; gap: 12px; }
+  .kp-item {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    border-left: 4px solid transparent;
+  }
+  .kp-item.p1 { border-left-color: var(--red); }
+  .kp-item.p2 { border-left-color: var(--orange); }
+  .kp-item.ok { border-left-color: var(--green); }
+  .kp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .kp-name { font-size: 14px; font-weight: 600; flex: 1; }
+  .kp-score { font-size: 18px; font-weight: 700; }
+  .kp-score.p1 { color: var(--red); }
+  .kp-score.p2 { color: var(--orange); }
+  .kp-score.ok { color: var(--green); }
+  .kp-bar-wrap { background: var(--gray-100); border-radius: 4px; height: 6px; margin-bottom: 10px; }
+  .kp-bar-fill { height: 100%; border-radius: 4px; }
+  .kp-insight { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .kp-insight strong { color: var(--text); font-weight: 600; }
+
+  /* 错题详情 */
+  .error-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .error-table th { background: var(--gray-50); padding: 6px 10px; font-weight: 500; color: var(--text-muted); border-bottom: 1px solid var(--border); text-align: left; }
+  .error-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  .error-table tr:last-child td { border-bottom: none; }
+
+  /* ── 部门分析 ── */
+  .dept-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .dept-card {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    border-top: 3px solid transparent;
+  }
+  .dept-card.high-risk { border-top-color: var(--red); }
+  .dept-card.watch     { border-top-color: var(--orange); }
+  .dept-card.ok        { border-top-color: var(--green); }
+  .dept-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .dept-people { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+  .dept-rate { font-size: 22px; font-weight: 700; line-height: 1; margin-bottom: 2px; }
+  .dept-rate.high-risk { color: var(--red); }
+  .dept-rate.watch     { color: var(--orange); }
+  .dept-rate.ok        { color: var(--green); }
+  .dept-avg { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .dept-weak { font-size: 11px; background: var(--gray-50); border-radius: var(--radius-sm); padding: 6px 8px; color: var(--text-muted); }
+  .dept-weak span { color: var(--red); font-weight: 600; }
+
+  /* 热力图 */
+  .heatmap-wrap { overflow-x: auto; }
+  .heatmap { border-collapse: collapse; font-size: 12px; min-width: 600px; }
+  .heatmap th { padding: 6px 10px; background: var(--gray-100); font-weight: 500; color: var(--text-muted); border: 1px solid var(--border); white-space: nowrap; }
+  .heatmap td { padding: 8px 10px; border: 1px solid var(--border); text-align: center; font-weight: 600; font-size: 12px; }
+
+  /* ── 排行榜 ── */
+  .rank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .rank-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .rank-card-head { padding: 12px 16px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .rank-card-head.top { background: var(--green-light); color: var(--green); border-bottom: 1px solid #c0e8d4; }
+  .rank-card-head.bot { background: var(--red-light); color: var(--red); border-bottom: 1px solid #f5c0c0; }
+  .rank-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .rank-table td { padding: 8px 16px; border-bottom: 1px solid var(--border); }
+  .rank-table tr:last-child td { border-bottom: none; }
+  .rank-no { font-weight: 700; color: var(--text-muted); width: 28px; }
+  .rank-score-top { font-weight: 700; color: var(--green); }
+  .rank-score-bot { font-weight: 700; color: var(--red); }
+  .rank-dept { font-size: 11px; color: var(--text-muted); }
+
+  /* ── 时长分析 ── */
+  .quadrant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .quadrant-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .quadrant-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+  .quadrant-count { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .quadrant-desc { font-size: 12px; color: var(--text-muted); }
+  .q-deepstudy .quadrant-label { color: var(--green); }
+  .q-deepstudy .quadrant-count { color: var(--green); }
+  .q-hard .quadrant-label { color: var(--orange); }
+  .q-hard .quadrant-count { color: var(--orange); }
+  .q-fast .quadrant-label { color: var(--blue); }
+  .q-fast .quadrant-count { color: var(--blue); }
+  .q-suspect .quadrant-label { color: var(--red); }
+  .q-suspect .quadrant-count { color: var(--red); }
+
+  /* ── 行动建议 ── */
+  .action-list { display: flex; flex-direction: column; gap: 10px; }
+  .action-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+  }
+  .action-tag {
+    flex-shrink: 0; width: 40px; height: 40px;
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center;
+  }
+  .action-tag.p0 { background: var(--red-light); color: var(--red); border: 1px solid #f5c0c0; }
+  .action-tag.p1 { background: var(--amber-light); color: var(--amber); border: 1px solid #f0d78a; }
+  .action-tag.p2 { background: var(--blue-light); color: var(--blue); border: 1px solid #b5d4f4; }
+  .action-content .title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .action-content .desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .action-meta { margin-left: auto; text-align: right; flex-shrink: 0; }
+  .action-time { font-size: 11px; font-weight: 700; color: var(--text-muted); background: var(--gray-100); padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+
+  /* 疑似名单 */
+  .suspect-table { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .suspect-table th { background: var(--red-light); color: var(--red); padding: 8px 14px; font-weight: 600; text-align: left; border-bottom: 1px solid #f5c0c0; }
+  .suspect-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  .suspect-table tr:last-child td { border-bottom: none; }
+
+  /* ── 分隔 ── */
+  .divider { height: 1px; background: var(--border); margin: 0 56px; }
+  .section-gray { background: var(--gray-50); }
+  .section-white { background: #fff; }
+
+  /* ── 页脚 ── */
+  .footer {
+    background: var(--gray-800); color: rgba(255,255,255,0.5);
+    font-size: 12px; padding: 20px 56px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* 辅助 */
+  .tag-pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .pill-red    { background: var(--red-light); color: var(--red); }
+  .pill-green  { background: var(--green-light); color: var(--green); }
+  .pill-orange { background: var(--orange-light); color: var(--orange); }
+  .pill-blue   { background: var(--blue-light); color: var(--blue); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .mt8 { margin-top: 8px; }
+  .mt16 { margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ 封面 ═══ -->
+<div class="cover">
+  <div class="cover-label">AI 考试洞察报告 · Exam Insight v1.0</div>
+  <div class="cover-title">2026年4月 · 全员综合能力考核</div>
+  <div class="cover-sub">酷学院智能分析平台 · 本报告由 AI 自动生成，数据来源于考试系统</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><div class="label">应考人数</div><div class="val">300 人</div></div>
+    <div class="cover-meta-item"><div class="label">实考人数</div><div class="val">300 人</div></div>
+    <div class="cover-meta-item"><div class="label">通过率</div><div class="val">73.3%</div></div>
+    <div class="cover-meta-item"><div class="label">平均分</div><div class="val">67.1 分</div></div>
+    <div class="cover-meta-item"><div class="label">综合风险</div><div class="val">P1 需关注</div></div>
+    <div class="cover-meta-item"><div class="label">生成时间</div><div class="val">2026-04-22</div></div>
+  </div>
+</div>
+
+<!-- ═══ 01 考试总览 ═══ -->
+<div class="section section-white">
+  <div class="section-title">01 &nbsp;考试总览</div>
+  <div class="stat-grid">
+    <div class="stat-card blue"><div class="num">300</div><div class="lbl">参考人数</div></div>
+    <div class="stat-card ok"><div class="num">73.3%</div><div class="lbl">通过率</div></div>
+    <div class="stat-card blue"><div class="num">67.1</div><div class="lbl">平均分</div></div>
+    <div class="stat-card ok"><div class="num">85.0</div><div class="lbl">最高分</div></div>
+    <div class="stat-card warn"><div class="num">47.7</div><div class="lbl">最低分</div></div>
+  </div>
+
+  <div class="two-col mt16">
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;">成绩分布</div>
+      <table class="dist-table">
+        <thead><tr><th>得分段</th><th>人数</th><th>占比</th><th>评级</th><th>分布</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>90–100</td><td>0</td><td>0%</td>
+            <td><span class="tag-pill pill-green">优秀</span></td>
+            <td><div class="bar-wrap"><div class="bar-fill" style="width:0%;background:#2e9e6b;"></div></div></td>
+          </tr>
+          <tr>
+            <td>75–89</td><td>55</td><td>18.3%</td>
+            <td><span class="tag-pill pill-blue">良好</span></td>
+            <td><div class="bar-wrap"><div class="bar-fill" style="width:18%;background:#1a6fc4;"></div></div></td>
+          </tr>
+          <tr>
+            <td>60–74</td><td>165</td><td>55.0%</td>
+            <td><span class="tag-pill pill-orange">及格</span></td>
+            <td><div class="bar-wrap"><div class="bar-fill" style="width:55%;background:#e07b2a;"></div></div></td>
+          </tr>
+          <tr>
+            <td>45–59</td><td>80</td><td>26.7%</td>
+            <td><span class="tag-pill pill-red">待改进</span></td>
+            <td><div class="bar-wrap"><div class="bar-fill" style="width:27%;background:#d94040;"></div></div></td>
+          </tr>
+          <tr>
+            <td>0–44</td><td>0</td><td>0%</td>
+            <td><span class="tag-pill pill-red">高风险</span></td>
+            <td><div class="bar-wrap"><div class="bar-fill" style="width:0%;background:#a00000;"></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;">AI 洞察结论</div>
+      <div style="font-size:13px;line-height:1.9;color:var(--text);">
+        本次考试整体通过率 <strong>73.3%</strong>，处于可接受区间但仍偏低，极差 37 分，成绩分布近似正态，集中在及格段（55%）。<br><br>
+        最大隐患是 <strong>26.7%（约80人）</strong> 落在 45–59 分的待改进区，若不及时干预极易滑入不及格。无优秀段学员，说明整体知识掌握深度不足，建议考后优先推送 <strong>客户沟通技巧</strong> 和 <strong>操作流程规范</strong> 两大薄弱模块的专项微课。
+      </div>
+      <div class="mt8">
+        <span class="risk-badge risk-p1">⚠ P1 需关注</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 试题构成 -->
+  <div class="card mt16">
+    <div style="font-size:13px;font-weight:600;margin-bottom:14px;">试题构成</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:72px;font-size:12px;color:var(--text-muted);flex-shrink:0;">单选题</div>
+          <div style="flex:1;background:var(--gray-100);border-radius:4px;height:10px;overflow:hidden;"><div style="width:57.1%;height:100%;background:var(--blue);border-radius:4px;"></div></div>
+          <div style="width:72px;text-align:right;font-size:12px;font-weight:600;color:var(--blue);">40题 57.1%</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:72px;font-size:12px;color:var(--text-muted);flex-shrink:0;">多选题</div>
+          <div style="flex:1;background:var(--gray-100);border-radius:4px;height:10px;overflow:hidden;"><div style="width:21.4%;height:100%;background:var(--orange);border-radius:4px;"></div></div>
+          <div style="width:72px;text-align:right;font-size:12px;font-weight:600;color:var(--orange);">15题 21.4%</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:72px;font-size:12px;color:var(--text-muted);flex-shrink:0;">判断题</div>
+          <div style="flex:1;background:var(--gray-100);border-radius:4px;height:10px;overflow:hidden;"><div style="width:14.3%;height:100%;background:var(--green);border-radius:4px;"></div></div>
+          <div style="width:72px;text-align:right;font-size:12px;font-weight:600;color:var(--green);">10题 14.3%</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:72px;font-size:12px;color:var(--text-muted);flex-shrink:0;">填空题</div>
+          <div style="flex:1;background:var(--gray-100);border-radius:4px;height:10px;overflow:hidden;"><div style="width:7.1%;height:100%;background:var(--amber);border-radius:4px;"></div></div>
+          <div style="width:72px;text-align:right;font-size:12px;font-weight:600;color:var(--amber);">5题 7.1%</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;">
+        <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:14px 8px;">
+          <div style="font-size:22px;font-weight:700;color:var(--blue);">70</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">总题数</div>
+        </div>
+        <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:14px 8px;">
+          <div style="font-size:22px;font-weight:700;color:var(--text);">100</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">总分</div>
+        </div>
+        <div style="background:var(--green-light);border-radius:var(--radius-sm);padding:14px 8px;">
+          <div style="font-size:22px;font-weight:700;color:var(--green);">60</div>
+          <div style="font-size:11px;color:var(--green);margin-top:2px;">及格分</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ 02 知识点分析 ═══ -->
+<div class="section section-gray">
+  <div class="section-title">02 &nbsp;知识点掌握分析</div>
+  <div class="kp-list">
+
+    <div class="kp-item p1">
+      <div class="kp-header">
+        <div class="kp-name">客户沟通技巧</div>
+        <span class="tag-pill pill-red">P1 需关注</span>
+        <div class="kp-score p1">64.5 分</div>
+      </div>
+      <div class="kp-bar-wrap"><div class="kp-bar-fill" style="width:64.5%;background:var(--red);"></div></div>
+      <div class="kp-insight">
+        <strong>根因：</strong>学员普遍在「处理客户异议」场景中缺乏同理心，倾向于急于成交或轻易让步，未掌握「先共情、再引导」的标准话术框架。<br>
+        <strong>重点题：</strong>T04-Q4（错误人次最多，40人），错误选项 B——「直接反驳客户观点」，反映出部分学员仍停留在产品导向而非客户导向的沟通模式。
+      </div>
+      <table class="error-table mt8">
+        <thead><tr><th>题目</th><th>错误选项</th><th>错因</th><th>错误人次</th></tr></thead>
+        <tbody>
+          <tr><td>T04-Q4</td><td>B</td><td>处理异议时缺乏同理心，直接反驳</td><td style="color:var(--red);font-weight:700;">40人</td></tr>
+          <tr><td>T04-Q1</td><td>C</td><td>轻易让步，给出不该给的优惠</td><td>30人</td></tr>
+          <tr><td>T04-Q3</td><td>A</td><td>急于成交，忽视客户真实需求</td><td>28人</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="kp-item p1">
+      <div class="kp-header">
+        <div class="kp-name">操作流程规范</div>
+        <span class="tag-pill pill-red">P1 需关注</span>
+        <div class="kp-score p1">64.7 分</div>
+      </div>
+      <div class="kp-bar-wrap"><div class="kp-bar-fill" style="width:64.7%;background:var(--red);"></div></div>
+      <div class="kp-insight">
+        <strong>根因：</strong>学员对标准流程的关键节点记忆不牢，习惯按个人经验操作，漏掉必填项和检查环节。这在有合规要求的业务场景中存在较高操作风险。<br>
+        <strong>重点题：</strong>T02-Q7（错误人次30人），错因为漏掉关键检查节点，建议设计「流程卡」配合情景演练强化。
+      </div>
+      <table class="error-table mt8">
+        <thead><tr><th>题目</th><th>错误选项</th><th>错因</th><th>错误人次</th></tr></thead>
+        <tbody>
+          <tr><td>T02-Q7</td><td>C</td><td>漏掉关键检查节点</td><td style="color:var(--red);font-weight:700;">30人</td></tr>
+          <tr><td>T02-Q5</td><td>A</td><td>遗漏必填信息字段</td><td>28人</td></tr>
+          <tr><td>T02-Q3</td><td>C</td><td>按个人习惯而非标准流程操作</td><td>22人</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="kp-item p2">
+      <div class="kp-header">
+        <div class="kp-name">产品知识</div>
+        <span class="tag-pill pill-orange">P2 待巩固</span>
+        <div class="kp-score p2">65.7 分</div>
+      </div>
+      <div class="kp-bar-wrap"><div class="kp-bar-fill" style="width:65.7%;background:var(--orange);"></div></div>
+      <div class="kp-insight">
+        <strong>根因：</strong>新品参数与适用场景混淆，不同型号区别掌握不清晰，销售侧尤为明显。建议针对新品发布后设置专项产品知识测验，而非在综合考核中考察。
+      </div>
+    </div>
+
+    <div class="kp-item p2">
+      <div class="kp-header">
+        <div class="kp-name">企业文化与价值观</div>
+        <span class="tag-pill pill-orange">P2 待巩固</span>
+        <div class="kp-score p2">65.9 分</div>
+      </div>
+      <div class="kp-bar-wrap"><div class="kp-bar-fill" style="width:65.9%;background:var(--orange);"></div></div>
+      <div class="kp-insight">
+        <strong>根因：</strong>T08-Q1 错误人次达50人，学员对企业核心价值观的理解停留在字面层面，无法结合实际工作场景灵活运用。建议通过案例教学替代纯记忆式培训。
+      </div>
+    </div>
+
+    <div class="kp-item ok">
+      <div class="kp-header">
+        <div class="kp-name">工具系统操作</div>
+        <span class="tag-pill pill-green">达标</span>
+        <div class="kp-score ok">72.7 分</div>
+      </div>
+      <div class="kp-bar-wrap"><div class="kp-bar-fill" style="width:72.7%;background:var(--green);"></div></div>
+      <div class="kp-insight">
+        本次考试表现最佳模块，大多数学员对系统工具的基础操作已掌握。可考虑将优秀学员的操作经验提炼为 SOP，在部门内部分享。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ 03 题库引用分析 ═══ -->
+<div class="section section-white">
+  <div class="section-title">03 &nbsp;题库引用分析</div>
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">基于本次考试引用情况，评估各知识点题库健康度——引用率过高意味着题库近乎榨干、学员可能已摸清题型；正确率低则说明该知识点题目仍有区分效果但培训投入不足。</div>
+
+  <canvas id="bankChart" height="90"></canvas>
+
+  <div style="margin-top:20px;overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:var(--radius);border:1px solid var(--border);">
+      <thead>
+        <tr>
+          <th style="background:var(--gray-100);padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-muted);font-weight:500;white-space:nowrap;">知识点</th>
+          <th style="background:var(--gray-100);padding:9px 14px;text-align:center;border-bottom:1px solid var(--border);color:var(--text-muted);font-weight:500;">引用题数</th>
+          <th style="background:var(--gray-100);padding:9px 14px;text-align:center;border-bottom:1px solid var(--border);color:var(--text-muted);font-weight:500;">题库总量</th>
+          <th style="background:var(--gray-100);padding:9px 14px;text-align:center;border-bottom:1px solid var(--border);color:var(--text-muted);font-weight:500;">引用率</th>
+          <th style="background:var(--gray-100);padding:9px 14px;text-align:center;border-bottom:1px solid var(--border);color:var(--text-muted);font-weight:500;">正确率</th>
+          <th style="background:var(--gray-100);padding:9px 14px;text-align:center;border-bottom:1px solid var(--border);color:var(--text-muted);font-weight:500;">题库健康度</th>
+          <th style="background:var(--gray-100);padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-muted);font-weight:500;">建议</th>
+        </tr>
+      </thead>
+      <tbody id="bank-table-body"></tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:12px;background:var(--amber-light);border:1px solid #f0d78a;border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;line-height:1.7;color:var(--amber);">
+    <strong>AI 洞察：</strong>操作流程规范引用率83.3%（12题库中用了10题），题库严重偏薄且正确率仅60.1%，亟需扩充至20题以上并增加情景类题型。企业文化与价值观引用率80%情况类似。客户沟通技巧引用率66.7%但正确率最低（58.2%），说明现有题目已能区分出掌握薄弱的学员，优先加强培训内容而非扩充题库。
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ 04 部门分析 ═══ -->
+<div class="section section-white">
+  <div class="section-title">03 &nbsp;各部门考试情况</div>
+  <div class="dept-grid">
+    <div class="dept-card high-risk">
+      <div class="dept-name">市场部</div>
+      <div class="dept-people">7 人参考</div>
+      <div class="dept-rate high-risk">42.9%</div>
+      <div class="dept-avg">均分 61.8 · 极差 18分（集中稳定）</div>
+      <div class="dept-weak">最弱：<span>操作流程规范 56.0</span></div>
+    </div>
+    <div class="dept-card high-risk">
+      <div class="dept-name">销售一部</div>
+      <div class="dept-people">20 人参考</div>
+      <div class="dept-rate high-risk">50.0%</div>
+      <div class="dept-avg">均分 61.0 · 极差 23分（高离散）</div>
+      <div class="dept-weak">最弱：<span>安全与合规 55.0</span></div>
+    </div>
+    <div class="dept-card watch">
+      <div class="dept-name">运营中心</div>
+      <div class="dept-people">50 人参考</div>
+      <div class="dept-rate watch">70.0%</div>
+      <div class="dept-avg">均分 65.1 · 极差 19分（集中稳定）</div>
+      <div class="dept-weak">最弱：<span>客户沟通技巧 61.0</span></div>
+    </div>
+    <div class="dept-card ok">
+      <div class="dept-name">技术部</div>
+      <div class="dept-people">60 人参考</div>
+      <div class="dept-rate ok">83.3%</div>
+      <div class="dept-avg">均分 69.2 · 极差 31分（中等离散）</div>
+      <div class="dept-weak">最弱：<span>操作流程规范 67.4</span></div>
+    </div>
+    <div class="dept-card ok">
+      <div class="dept-name">财务部</div>
+      <div class="dept-people">30 人参考</div>
+      <div class="dept-rate ok">83.3%</div>
+      <div class="dept-avg">均分 68.3 · 极差 32分（⚠ 最分散）</div>
+      <div class="dept-weak">最弱：<span>企业文化与价值观 62.8</span></div>
+    </div>
+    <div class="dept-card ok">
+      <div class="dept-name">销售三部</div>
+      <div class="dept-people">45 人参考</div>
+      <div class="dept-rate ok">77.8%</div>
+      <div class="dept-avg">均分 67.0 · 极差 20分（集中稳定）</div>
+      <div class="dept-weak">最弱：<span>操作流程规范 62.7</span></div>
+    </div>
+    <div class="dept-card ok">
+      <div class="dept-name">人事行政部</div>
+      <div class="dept-people">20 人参考</div>
+      <div class="dept-rate ok">75.0%</div>
+      <div class="dept-avg">均分 68.0 · 极差 25分（高离散）</div>
+      <div class="dept-weak">最弱：<span>客户沟通技巧 63.6</span></div>
+    </div>
+    <div class="dept-card ok" style="border-top-color:#1a6fc4;">
+      <div class="dept-name">销售二部 🏆</div>
+      <div class="dept-people">68 人参考</div>
+      <div class="dept-rate" style="color:var(--blue);">87.5%</div>
+      <div class="dept-avg">均分 73.2 · 极差 26分（中等离散）</div>
+      <div class="dept-weak" style="color:var(--blue);">本次标杆部门，可推广经验</div>
+    </div>
+  </div>
+
+  <!-- 热力图 -->
+  <div class="mt16">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted);">各部门 × 知识点掌握热力图（分数越低颜色越深）</div>
+    <div class="heatmap-wrap">
+      <table class="heatmap">
+        <thead>
+          <tr>
+            <th>部门</th>
+            <th>客户沟通</th><th>操作流程</th><th>产品知识</th>
+            <th>企业文化</th><th>团队协作</th><th>安全合规</th>
+            <th>业务数据</th><th>工具系统</th>
+          </tr>
+        </thead>
+        <tbody id="heatmap-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 部门离散程度箱线图 -->
+  <div class="mt16">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-muted);">部门内部成绩离散程度（箱线图）</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">箱体=IQR（中间50%学员范围），横线=均分，须=极值，越宽表示部门内部水平差距越大</div>
+    <canvas id="boxChart" height="55"></canvas>
+    <div style="margin-top:14px;background:var(--amber-light);border:1px solid #f0d78a;border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;line-height:1.7;color:var(--amber);">
+      <strong>AI 洞察：</strong>财务部箱体最宽（IQR 14，极差32），"平均达标"掩盖了尾部问题，建议分层辅导。市场部箱体最窄（IQR 10，极差18），属<strong>整体性短板</strong>，统一推课效率最高。销售一部高危+高离散（IQR 19），头部学员萃取经验、尾部学员一对一帮扶需并行推进。
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ 05 排行榜 ═══ -->
+<div class="section section-gray">
+  <div class="section-title">05 &nbsp;优秀学员 & 尾部学员</div>
+  <div class="rank-grid">
+    <div class="rank-card">
+      <div class="rank-card-head top">🏆 &nbsp;优秀学员 TOP 10（前10%）</div>
+      <table class="rank-table">
+        <tbody>
+          <tr><td class="rank-no">1</td><td>员工 A028</td><td class="rank-dept">销售二部</td><td class="rank-score-top">85.0</td><td><span class="tag-pill pill-green">标杆</span></td></tr>
+          <tr><td class="rank-no">2</td><td>员工 A115</td><td class="rank-dept">销售二部</td><td class="rank-score-top">84.2</td><td></td></tr>
+          <tr><td class="rank-no">3</td><td>员工 A063</td><td class="rank-dept">技术部</td><td class="rank-score-top">83.8</td><td></td></tr>
+          <tr><td class="rank-no">4</td><td>员工 A201</td><td class="rank-dept">财务部</td><td class="rank-score-top">83.1</td><td></td></tr>
+          <tr><td class="rank-no">5</td><td>员工 A077</td><td class="rank-dept">销售二部</td><td class="rank-score-top">82.9</td><td></td></tr>
+          <tr><td class="rank-no">6</td><td>员工 A188</td><td class="rank-dept">销售三部</td><td class="rank-score-top">81.5</td><td></td></tr>
+          <tr><td class="rank-no">7</td><td>员工 A044</td><td class="rank-dept">技术部</td><td class="rank-score-top">80.7</td><td></td></tr>
+          <tr><td class="rank-no">8</td><td>员工 A099</td><td class="rank-dept">运营中心</td><td class="rank-score-top">80.2</td><td></td></tr>
+          <tr><td class="rank-no">9</td><td>员工 A156</td><td class="rank-dept">销售二部</td><td class="rank-score-top">79.8</td><td></td></tr>
+          <tr><td class="rank-no">10</td><td>员工 A033</td><td class="rank-dept">财务部</td><td class="rank-score-top">79.3</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rank-card">
+      <div class="rank-card-head bot">⚠ &nbsp;尾部学员（后10%，需重点帮扶）</div>
+      <table class="rank-table">
+        <tbody>
+          <tr><td class="rank-no">1</td><td>员工 A018</td><td class="rank-dept">财务部</td><td class="rank-score-bot">47.7</td><td><span class="tag-pill pill-red">高危</span></td></tr>
+          <tr><td class="rank-no">2</td><td>员工 A051</td><td class="rank-dept">销售一部</td><td class="rank-score-bot">49.2</td><td><span class="tag-pill pill-red">高危</span></td></tr>
+          <tr><td class="rank-no">3</td><td>員工 A007</td><td class="rank-dept">市场部</td><td class="rank-score-bot">51.1</td><td></td></tr>
+          <tr><td class="rank-no">4</td><td>员工 A035</td><td class="rank-dept">市场部</td><td class="rank-score-bot">52.4</td><td></td></tr>
+          <tr><td class="rank-no">5</td><td>员工 A019</td><td class="rank-dept">人事行政</td><td class="rank-score-bot">54.0</td><td></td></tr>
+          <tr><td class="rank-no">6</td><td>员工 A056</td><td class="rank-dept">销售一部</td><td class="rank-score-bot">55.1</td><td></td></tr>
+          <tr><td class="rank-no">7</td><td>员工 A083</td><td class="rank-dept">运营中心</td><td class="rank-score-bot">56.2</td><td></td></tr>
+          <tr><td class="rank-no">8</td><td>员工 A142</td><td class="rank-dept">销售一部</td><td class="rank-score-bot">57.0</td><td></td></tr>
+          <tr><td class="rank-no">9</td><td>员工 A058</td><td class="rank-dept">销售二部</td><td class="rank-score-bot">57.8</td><td></td></tr>
+          <tr><td class="rank-no">10</td><td>员工 A091</td><td class="rank-dept">市场部</td><td class="rank-score-bot">58.3</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ 06 作答时长 ═══ -->
+<div class="section section-white">
+  <div class="section-title">06 &nbsp;作答时长分析</div>
+  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+    <div class="stat-card blue"><div class="num">11.4 min</div><div class="lbl">平均作答时长</div></div>
+    <div class="stat-card ok"><div class="num">5.8 min</div><div class="lbl">最短用时</div></div>
+    <div class="stat-card blue"><div class="num">15.6 min</div><div class="lbl">最长用时</div></div>
+  </div>
+  <div class="quadrant-grid">
+    <div class="quadrant-card q-deepstudy">
+      <div class="quadrant-label">深度学习</div>
+      <div class="quadrant-count">80 人</div>
+      <div class="quadrant-desc">用时长 · 得分高<br>认真作答，掌握扎实，可作为经验推广对象</div>
+    </div>
+    <div class="quadrant-card q-hard">
+      <div class="quadrant-label">遇到困难</div>
+      <div class="quadrant-count">75 人</div>
+      <div class="quadrant-desc">用时长 · 得分低<br>学习态度好但知识薄弱，需针对性辅导而非重考</div>
+    </div>
+    <div class="quadrant-card q-fast">
+      <div class="quadrant-label">高效完成</div>
+      <div class="quadrant-count">80 人</div>
+      <div class="quadrant-desc">用时短 · 得分高<br>知识掌握牢固，可考虑推进阶课程</div>
+    </div>
+    <div class="quadrant-card q-suspect">
+      <div class="quadrant-label">疑似虚假完成</div>
+      <div class="quadrant-count">65 人</div>
+      <div class="quadrant-desc">用时短 · 得分低<br>需本周内核查考试环境，必要时安排重考</div>
+    </div>
+  </div>
+
+  <div class="mt16">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted);">疑似虚假完成名单（需本周内核查）</div>
+    <table class="suspect-table">
+      <thead><tr><th>姓名</th><th>部门</th><th>得分</th><th>用时</th><th>建议措施</th></tr></thead>
+      <tbody>
+        <tr><td>员工 A007</td><td>市场部</td><td>51.1</td><td>5.8 min</td><td>核查考试环境 + 重新测试</td></tr>
+        <tr><td>员工 A018</td><td>财务部</td><td>47.7</td><td>6.2 min</td><td>核查考试环境 + 重新测试</td></tr>
+        <tr><td>员工 A019</td><td>人事行政</td><td>54.0</td><td>6.5 min</td><td>核查考试环境</td></tr>
+        <tr><td>员工 A035</td><td>市场部</td><td>52.4</td><td>7.1 min</td><td>核查考试环境</td></tr>
+        <tr><td>员工 A045</td><td>销售三部</td><td>64.8</td><td>7.3 min</td><td>观察下次表现</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ 07 行动建议 ═══ -->
+<div class="section section-gray">
+  <div class="section-title">07 &nbsp;行动建议</div>
+  <div class="action-list">
+    <div class="action-item">
+      <div class="action-tag p0">P0<br>紧急</div>
+      <div class="action-content">
+        <div class="title">疑似虚假完成核查（65人）</div>
+        <div class="desc">员工 A007、A018、A019 等人用时不足6分钟且得分偏低，需本周内核查考试环境及作答记录，必要时安排重新测试，确保成绩真实有效。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">本周内</div></div>
+    </div>
+    <div class="action-item">
+      <div class="action-tag p0">P0<br>紧急</div>
+      <div class="action-content">
+        <div class="title">市场部 & 销售一部专项帮扶</div>
+        <div class="desc">两部门通过率低于55%，属高危状态。建议安排培训主管驻点跟进两周，以销售二部（87.5%）为标杆开展「一对一帮带」，目标2周内通过率提升至75%以上。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">本周启动</div></div>
+    </div>
+    <div class="action-item">
+      <div class="action-tag p1">P1<br>重点</div>
+      <div class="action-content">
+        <div class="title">客户沟通技巧 · 推送微课 + 情景演练</div>
+        <div class="desc">全员均分仅64.5，为最薄弱知识点。重点针对T04-Q4（40人错）设计「处理异议情景模拟」练习，推荐面授+情景题组合，2周内完成补训。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">2周内</div></div>
+    </div>
+    <div class="action-item">
+      <div class="action-tag p1">P1<br>重点</div>
+      <div class="action-content">
+        <div class="title">操作流程规范 · 流程卡 + SOP强化</div>
+        <div class="desc">T02-Q7「漏掉关键检查节点」是第二大高频错误。建议制作可视化流程卡并要求岗位张贴，结合实操演练巩固记忆，2周内完成。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">2周内</div></div>
+    </div>
+    <div class="action-item">
+      <div class="action-tag p1">P1<br>重点</div>
+      <div class="action-content">
+        <div class="title">80人待改进学员 · 专项微课推送</div>
+        <div class="desc">45–59分段80人若不干预将滑入高风险区。针对各人薄弱知识点推送定向微课，优先覆盖客户沟通技巧和操作流程规范两个模块，本月内完成。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">本月内</div></div>
+    </div>
+    <div class="action-item">
+      <div class="action-tag p1">P1<br>重点</div>
+      <div class="action-content">
+        <div class="title">财务部内部分层辅导</div>
+        <div class="desc">财务部极差32分，内部水平差距最大，平均数掩盖了尾部问题。对中位数以上学员推送进阶内容，对低分学员安排一对一补差。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">本月内</div></div>
+    </div>
+    <div class="action-item">
+      <div class="action-tag p2">P2<br>巩固</div>
+      <div class="action-content">
+        <div class="title">优秀学员推广 · 销售二部经验萃取</div>
+        <div class="desc">销售二部以87.5%通过率领跑，可提炼该部门在客户沟通和工具操作方面的最佳实践，制作为内部分享课或SOP，在下一轮培训中向全员推广。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">本月内</div></div>
+    </div>
+    <div class="action-item">
+      <div class="action-tag p2">P2<br>巩固</div>
+      <div class="action-content">
+        <div class="title">产品知识 / 企业文化 / 安全合规 · 批量微课</div>
+        <div class="desc">P2级知识点（均分65–68分）整体偏低，推送对应微课进行批量补训。建议改用案例教学替代纯记忆，提升知识迁移能力。</div>
+      </div>
+      <div class="action-meta"><div class="action-time">下月内</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 页脚 ═══ -->
+<div class="footer">
+  <div>AI 考试洞察报告 · 酷学院智能分析平台 · 2026-04-22 自动生成</div>
+  <div>数据基于 MCP 接口统计结果 · Skill 深度分析 · 仅供培训决策参考</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+  // ── 题库引用图表 ──
+  const bankData = [
+    { kp:'客户沟通技巧',   used:12, total:18, correct:58.2 },
+    { kp:'操作流程规范',   used:10, total:12, correct:60.1 },
+    { kp:'企业文化与价值观', used:8, total:10, correct:63.1 },
+    { kp:'工具系统操作',   used:10, total:14, correct:74.3 },
+    { kp:'安全与合规',     used:8,  total:15, correct:65.2 },
+    { kp:'产品知识',       used:14, total:30, correct:62.4 },
+    { kp:'其他模块',       used:8,  total:20, correct:69.8 },
+  ];
+  const useRates    = bankData.map(d => Math.round(d.used / d.total * 100));
+  const correctRates = bankData.map(d => d.correct);
+  const bankLabels   = bankData.map(d => d.kp);
+  const barColors    = useRates.map(r => r >= 80 ? '#d94040' : r >= 65 ? '#e07b2a' : '#2e9e6b');
+
+  new Chart(document.getElementById('bankChart'), {
+    type: 'bar',
+    data: {
+      labels: bankLabels,
+      datasets: [
+        { label:'引用率 %', data:useRates, backgroundColor:barColors, borderRadius:4, yAxisID:'y', order:2 },
+        { label:'正确率 %', data:correctRates, type:'line', borderColor:'#1a6fc4', backgroundColor:'rgba(26,111,196,0.08)', pointBackgroundColor:'#1a6fc4', pointRadius:4, tension:0.3, yAxisID:'y', order:1 }
+      ]
+    },
+    options: {
+      responsive:true,
+      plugins: {
+        legend:{ position:'top', labels:{ font:{size:12}, boxWidth:12 } },
+        tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}%` } }
+      },
+      scales: {
+        y:{ min:0, max:100, ticks:{ callback: v => v+'%', font:{size:11} }, grid:{ color:'#f0efeb' } },
+        x:{ ticks:{ font:{size:11} }, grid:{ display:false } }
+      }
+    }
+  });
+
+  // 题库引用详情表
+  const bankTbody = document.getElementById('bank-table-body');
+  bankData.forEach(d => {
+    const rate = Math.round(d.used / d.total * 100);
+    const rateColor = rate >= 80 ? 'var(--red)' : rate >= 65 ? 'var(--orange)' : 'var(--green)';
+    const corrColor = d.correct < 62 ? 'var(--red)' : d.correct < 68 ? 'var(--orange)' : 'var(--green)';
+    let health, healthColor;
+    if (rate >= 80 && d.correct < 65) { health='⚠ 题库偏薄+易错'; healthColor='var(--red)'; }
+    else if (rate >= 80)              { health='题库偏薄';         healthColor='var(--orange)'; }
+    else if (d.correct < 62)         { health='正确率偏低';        healthColor='var(--orange)'; }
+    else                             { health='健康';              healthColor='var(--green)'; }
+    const suggestion = rate >= 80 && d.correct < 65 ? '立即扩充题库，增加情景类题型'
+                     : rate >= 80                   ? '扩充题库，增加题目多样性'
+                     : d.correct < 62              ? '加强培训内容，暂不需扩库'
+                     :                              '维持现状，定期更新题目';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding:8px 14px;border-bottom:1px solid var(--border);font-weight:500;">${d.kp}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--border);text-align:center;">${d.used}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--border);text-align:center;">${d.total}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:${rateColor};">${rate}%</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:${corrColor};">${d.correct}%</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--border);text-align:center;font-size:12px;font-weight:600;color:${healthColor};">${health}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);">${suggestion}</td>
+    `;
+    bankTbody.appendChild(tr);
+  });
+
+  // ── 部门箱线图（Canvas手绘）──
+  const boxDepts = ['人事行政','市场部','技术部','财务部','运营中心','销售一部','销售三部','销售二部'];
+  const boxStats = [
+    { min:52, q1:60, avg:68.0, q3:78, max:77 },
+    { min:50, q1:57, avg:61.8, q3:67, max:68 },
+    { min:48, q1:65, avg:69.2, q3:73, max:79 },
+    { min:47, q1:61, avg:68.3, q3:75, max:79 },
+    { min:52, q1:61, avg:65.1, q3:71, max:71 },
+    { min:47, q1:56, avg:61.0, q3:75, max:70 },
+    { min:55, q1:62, avg:67.0, q3:73, max:75 },
+    { min:59, q1:68, avg:73.2, q3:77, max:85 },
+  ];
+  const cvs = document.getElementById('boxChart');
+  cvs.width  = cvs.parentElement.offsetWidth || 800;
+  cvs.height = Math.round(cvs.width * 0.34);
+  const bctx = cvs.getContext('2d');
+  const padL=100, padR=24, padT=24, padB=44;
+  const W=cvs.width, H=cvs.height;
+  const cW=W-padL-padR, cH=H-padT-padB;
+  const n=boxDepts.length, slotW=cW/n, bHalf=slotW*0.27;
+  const minS=40, maxS=90;
+  const sy = s => padT + cH - ((s-minS)/(maxS-minS))*cH;
+
+  // grid + y-axis labels
+  [40,50,60,70,80,90].forEach(v => {
+    const y=sy(v);
+    bctx.strokeStyle='#f0efeb'; bctx.lineWidth=1;
+    bctx.beginPath(); bctx.moveTo(padL,y); bctx.lineTo(W-padR,y); bctx.stroke();
+    bctx.fillStyle='#9e9c94'; bctx.font='11px sans-serif'; bctx.textAlign='right';
+    bctx.fillText(v, padL-6, y+4);
+  });
+  // 及格线
+  bctx.strokeStyle='#d94040'; bctx.lineWidth=1; bctx.setLineDash([4,3]);
+  bctx.beginPath(); bctx.moveTo(padL,sy(60)); bctx.lineTo(W-padR,sy(60)); bctx.stroke();
+  bctx.setLineDash([]);
+  bctx.fillStyle='#d94040'; bctx.font='10px sans-serif'; bctx.textAlign='left';
+  bctx.fillText('及格线 60', padL+4, sy(60)-4);
+
+  boxStats.forEach((d,i) => {
+    const cx = padL + i*slotW + slotW/2;
+    const col = d.avg >= 70 ? '#2e9e6b' : d.avg >= 65 ? '#e07b2a' : '#d94040';
+    // 须
+    bctx.strokeStyle='#b4b2a9'; bctx.lineWidth=1.5;
+    [[d.min,d.q1],[d.q3,d.max]].forEach(([a,b]) => {
+      bctx.beginPath(); bctx.moveTo(cx,sy(a)); bctx.lineTo(cx,sy(b)); bctx.stroke();
+      [a,b].forEach(v => {
+        bctx.beginPath(); bctx.moveTo(cx-bHalf*0.4,sy(v)); bctx.lineTo(cx+bHalf*0.4,sy(v)); bctx.stroke();
+      });
+    });
+    // 箱体
+    const bTop=sy(d.q3), bBot=sy(d.q1);
+    bctx.fillStyle=col+'20'; bctx.fillRect(cx-bHalf,bTop,bHalf*2,bBot-bTop);
+    bctx.strokeStyle=col; bctx.lineWidth=1.5; bctx.strokeRect(cx-bHalf,bTop,bHalf*2,bBot-bTop);
+    // 均分线
+    bctx.strokeStyle=col; bctx.lineWidth=2.5;
+    bctx.beginPath(); bctx.moveTo(cx-bHalf,sy(d.avg)); bctx.lineTo(cx+bHalf,sy(d.avg)); bctx.stroke();
+    // x轴标签 + 均分值
+    bctx.fillStyle='#2c2c2a'; bctx.font='11px sans-serif'; bctx.textAlign='center';
+    bctx.fillText(boxDepts[i], cx, H-padB+14);
+    bctx.fillStyle=col; bctx.font='bold 11px sans-serif';
+    bctx.fillText(d.avg, cx, H-padB+28);
+  });
+
+  // ── 热力图 ──
+  const depts = ['人事行政部','市场部','技术部','财务部','运营中心','销售一部','销售三部','销售二部'];
+  const data = [
+    [63.6,68.4,65.2,66.3,74.8,71.2,70.5,75.1],
+    [58.0,56.0,61.0,60.0,65.0,67.0,62.0,68.0],
+    [68.5,67.4,66.2,68.0,69.8,71.3,70.1,72.2],
+    [65.0,68.0,70.2,62.8,67.0,72.2,69.5,71.0],
+    [61.0,63.5,64.0,65.5,66.0,67.0,65.0,72.1],
+    [57.0,58.5,60.0,58.0,60.0,55.0,60.0,67.8],
+    [64.0,62.7,65.5,66.0,68.0,68.5,66.0,76.6],
+    [65.8,67.5,68.0,69.0,70.5,71.0,70.0,82.3],
+  ];
+  function scoreColor(v) {
+    if (v < 60) return { bg:'#fdeaea', color:'#a32d2d' };
+    if (v < 65) return { bg:'#fff0e0', color:'#854f0b' };
+    if (v < 70) return { bg:'#fffbe6', color:'#7a5c00' };
+    return { bg:'#e8f6ef', color:'#1a6e44' };
+  }
+  const tbody = document.getElementById('heatmap-body');
+  data.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.textContent = depts[i];
+    tdName.style.cssText = 'font-weight:600;white-space:nowrap;padding:8px 10px;border:1px solid #e0dfd8;';
+    tr.appendChild(tdName);
+    row.forEach(v => {
+      const td = document.createElement('td');
+      const c = scoreColor(v);
+      td.textContent = v.toFixed(1);
+      td.style.background = c.bg;
+      td.style.color = c.color;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+</script>
+</body>
+</html>
